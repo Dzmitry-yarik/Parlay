@@ -1,0 +1,3 @@
+User: name =vanya, login =vanya, password =vanya, yourMoney= 468.43,
+User: name =dima, login =dima, password =dima, yourMoney= 500.0,
+Admin: name =admin, login =admin, password =admin, yourMoney =0.0,

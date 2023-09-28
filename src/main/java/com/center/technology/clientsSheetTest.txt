@@ -1,0 +1,2 @@
+User: nane =user1, login =login1, password =password1, yourMoney= 500.0,
+User: nane =user2, login =login2, password =password2, yourMoney= 500.0,
