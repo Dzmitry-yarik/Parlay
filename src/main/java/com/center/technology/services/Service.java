@@ -16,7 +16,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,10 +23,12 @@ import java.util.regex.Pattern;
 public class Service {
     Totalizator totalizator = new Totalizator();
 
-    public boolean enter(String login, String password) {
-//        Totalizator totalizator = new Totalizator();
-        for (User user : totalizator.getUsers()) {
-            if (login.equals(user.getLogin()) && password.equals(user.getPassword()) && !"admin".equals(login)) {
+    public boolean enter(String login, String password, boolean isAdmin) {
+        for (User user : Totalizator.getUsers()) {
+            if (isAdmin && "admin".equals(login) && "admin".equals(password)) {
+                totalizator.setCurrentClient(new Client(login, password, new User().getYourMoney()));
+                return true;
+            } else if (!isAdmin && login.equals(user.getLogin()) && password.equals(user.getPassword()) && !"admin".equals(login)) {
                 totalizator.setCurrentClient(new Client(login, password, user.getYourMoney()));
                 return true;
             }
@@ -36,40 +37,27 @@ public class Service {
         return false;
     }
 
-    public boolean enterAdm(String login, String password) {
-//        Totalizator totalizator = new Totalizator();
-        if ("admin".equals(login) && "admin".equals(password)) {
-            totalizator.setCurrentClient(new Client(login, password, new User().getYourMoney()));
-            return true;
-        }
-        return false;
-    }
-
     public User findUser(String login) {
-        User notFindUs = new User();
         for (User user : Totalizator.getUsers()) {
             if (login.equals(user.getLogin())) {
                 return user;
             }
         }
         System.out.println("Пользователь не найден");
-        return notFindUs;
+        return new User();
     }
 
     public List<String> showClients() {
-//        Totalizator totalizator = new Totalizator();
         List<String> clients = new ArrayList<>();
 
-        try {
-            FileReader reader = new FileReader(totalizator.getADDRESS());
-            BufferedReader bufferedReader = new BufferedReader(reader);
+        try (FileReader reader = new FileReader(totalizator.getADDRESS());
+             BufferedReader bufferedReader = new BufferedReader(reader)) {
             String line;
             while ((line = bufferedReader.readLine()) != null) {
                 if (!line.contains("Admin")) {
                     clients.add(line);
                 }
             }
-            reader.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -81,13 +69,12 @@ public class Service {
     }
 
     public void addUser(String name, String login, String password) {
-        Totalizator totalizator = new Totalizator();
         try (FileWriter writer = new FileWriter(totalizator.getADDRESS(), true)) {
             User newUser = new User(name, login, password, new User().getYourMoney());
             saveSerializable();
-            totalizator.getUsers().add(newUser);
+            Totalizator.getUsers().add(newUser);
             writer.write("\n" + newUser + ",");
-            System.out.println("Регестрация завершена. Вы можете сделать ставку");
+            System.out.println("Регистрация завершена. Вы можете сделать ставку");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -95,11 +82,9 @@ public class Service {
 
     public void clearAllParlay() {
         Totalizator.getCurrentClient().clearParlay();
-//        System.out.println("Очищено");
     }
 
     public void addParlayInRegistrationSheet() {
-        Totalizator totalizator = new Totalizator();
         LocalDateTime now = LocalDateTime.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy.MM.dd.HH:mm");
         String formattedDateTime = now.format(formatter);
@@ -119,12 +104,15 @@ public class Service {
                     if (matcher.find()) {
                         String matchedValue = matcher.group(1);
                         line = line.replaceAll(matchedValue, String.valueOf(Totalizator.getCurrentClient().getYourMoney()));
-                        totalizator.getNewLines().add(String.valueOf(new StringBuilder(line + " Дата: " +
-                                formattedDateTime + " = " + parlays + ", ")));
+                        totalizator.getNewLines().add((line + " Дата: " +
+                                formattedDateTime + " = " + parlays + ", "));
                     }
-                } else totalizator.getNewLines().add(line);
+                } else {
+                    totalizator.getNewLines().add(line);
+                }
             }
         }
+
         totalizator.getLines().clear();
 
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(totalizator.getADDRESS()))) {
@@ -135,36 +123,18 @@ public class Service {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        totalizator.getNewLines().clear();
     }
 
     public void writingUsersByClientsSheetTxt() {
-        Totalizator totalizator = new Totalizator();
         try (BufferedReader reader = new BufferedReader(new FileReader(totalizator.getADDRESS()))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.isEmpty()) {
                     continue;
                 }
-                int count = 0;
-                List<String> newParts = new ArrayList<>();
-                totalizator.getLines().add(line);
-
-                if (line.contains("Admin:")) {
-                    Totalizator.setFlagAdm(false);
-                }
-
-                String[] parts = line.split("(?<=,)");
-                for (String par : parts) {
-                    if (count < 5) {
-                        String resultString = par.substring(par.indexOf("=") + 1, par.indexOf(","));
-                        newParts.add(resultString);
-                        count++;
-                    }
-                }
-                User user = new User(newParts.get(0), newParts.get(1),
-                        newParts.get(2), Double.parseDouble(newParts.get(3)));
-
-                Totalizator.getUsers().add(user);
+                addUserToTotalizatorFromLine(line);
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -173,10 +143,31 @@ public class Service {
         }
     }
 
+    private void addUserToTotalizatorFromLine(String line) {
+        int count = 0;
+        List<String> newParts = new ArrayList<>();
+        totalizator.getLines().add(line);
+
+        if (line.contains("Admin:")) {
+            Totalizator.setFlagAdm(false);
+        }
+
+        String[] parts = line.split("(?<=,)");
+        for (String par : parts) {
+            if (count < 5) {
+                String resultString = par.substring(par.indexOf("=") + 1, par.indexOf(","));
+                newParts.add(resultString);
+                count++;
+            }
+        }
+        User user = new User(newParts.get(0), newParts.get(1),
+                newParts.get(2), Double.parseDouble(newParts.get(3)));
+
+        Totalizator.getUsers().add(user);
+    }
+
     public void saveSerializable() {
-        Totalizator totalizator = new Totalizator();
-        final String serializationFile = "C:\\Users\\Professional\\IdeaProjects\\UUU222\\homework_tester\\Parlay\\" +
-                "src\\main\\java\\com\\center\\technology\\serializable.txt";
+        final String serializationFile = "src\\main\\java\\com\\center\\technology\\serializable.txt";
         Path textFilePath = Paths.get(serializationFile);
 
         try {
@@ -189,7 +180,7 @@ public class Service {
         }
 
         try (ObjectOutputStream objectOutputStream = new ObjectOutputStream(new FileOutputStream(serializationFile, true))) {
-            objectOutputStream.writeObject(totalizator.getUsers());
+            objectOutputStream.writeObject(Totalizator.getUsers());
         } catch (IOException ex) {
             System.err.println("Ошибка сериализации: " + ex);
             ex.printStackTrace();
@@ -197,7 +188,6 @@ public class Service {
     }
 
     public void startingThreads() {
-        Totalizator totalizator = new Totalizator();
         for (int i = 1; i <= 7; i++) {
             Horse horse = new Horse(i);
             try {
@@ -212,24 +202,15 @@ public class Service {
     }
 
     public void calculateMoney(Parlay currentParlay) {
-        Totalizator totalizator = new Totalizator();
         try {
             TimeUnit.SECONDS.sleep(5);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
 
-        Horse horse = new Horse();
-        for (Horse hors : totalizator.getHorses()) {
-            if (hors.getHorseId() == Horse.getaStat()) {
-                horse = hors;
-                break;
-            }
-        }
-
         DecimalFormat df = new DecimalFormat("#.00");
         if (currentParlay.getHorseId() == Horse.getaStat()) {
-            double money = horse.getCoef() * currentParlay.getSum();
+            double money = Horse.getCoef() * currentParlay.getSum();
             String formattedMoney = df.format(money);
             System.out.println("Вы выиграли " + formattedMoney + "руб");
 
@@ -237,9 +218,7 @@ public class Service {
             String formatCurrentMoney = df.format(currentMoney);
             Totalizator.getCurrentClient().setYourMoney(currentMoney);
             System.out.println("Твой текущий счет: " + formatCurrentMoney + "руб");
-        }
-
-        if (currentParlay.getHorseId() != Horse.getaStat()) {
+        } else {
             double currentMoney = Totalizator.getCurrentClient().getYourMoney() - currentParlay.getSum();
             String formatCurrentMoney = df.format(currentMoney);
             Totalizator.getCurrentClient().setYourMoney(currentMoney);

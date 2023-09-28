@@ -41,8 +41,7 @@ public class Client extends User{
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Client client = (Client) o;
-        return Objects.equals(parlays, client.parlays);
+        return Objects.equals(parlays, parlays);
     }
 
     @Override
