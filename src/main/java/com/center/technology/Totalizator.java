@@ -15,7 +15,7 @@ import java.util.concurrent.CyclicBarrier;
 
 public class Totalizator {
 
-    private static String ADDRESS = "src/main/java/com/center/technology/clientsSheet.txt";
+    private static String ADDRESS = "src\\main\\java\\com\\center\\technology\\clientsSheet.txt";
     public static final CyclicBarrier BARRIER = new CyclicBarrier(7);
     private static List<User> users = new ArrayList<>();
     private List<Horse> horses = new ArrayList<>();

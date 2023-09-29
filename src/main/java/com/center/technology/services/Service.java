@@ -167,23 +167,24 @@ public class Service {
     }
 
     public void saveSerializable() {
-        final String serializationFile = "src\\main\\java\\com\\center\\technology\\serializable.txt";
+        String serializationFile = "src\\main\\java\\com\\center\\technology\\serializable.txt";
         Path textFilePath = Paths.get(serializationFile);
 
         try {
             if (!Files.exists(textFilePath)) {
                 Files.createFile(textFilePath);
             }
+
+            try (ObjectOutputStream objectOutputStream = new ObjectOutputStream(new FileOutputStream(serializationFile))) {
+                objectOutputStream.writeObject(Totalizator.getUsers());
+            } catch (IOException ex) {
+                System.err.println("Ошибка сериализации: " + ex);
+                ex.printStackTrace();
+            }
+
         } catch (IOException e) {
             System.err.println("Ошибка создания файла: " + e);
             e.printStackTrace();
-        }
-
-        try (ObjectOutputStream objectOutputStream = new ObjectOutputStream(new FileOutputStream(serializationFile, true))) {
-            objectOutputStream.writeObject(Totalizator.getUsers());
-        } catch (IOException ex) {
-            System.err.println("Ошибка сериализации: " + ex);
-            ex.printStackTrace();
         }
     }
 
@@ -196,7 +197,8 @@ public class Service {
                 totalizator.getHorses().add(horse);
                 Thread.sleep(300);
             } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                System.err.println("Ошибка при запуске потоков: " + e);
+                e.printStackTrace();
             }
         }
     }
@@ -225,7 +227,14 @@ public class Service {
             System.out.println("Вы проиграли. Ваш текущий остаток = " + formatCurrentMoney);
         }
 
+        for (User user : Totalizator.getUsers()) {
+            if (user.getLogin().equals(Totalizator.getCurrentClient().getLogin())) {
+                user.setYourMoney(Totalizator.getCurrentClient().getYourMoney());
+                break;
+            }
+        }
+
         Horse.setaStat(0);
-        new Controller().continueParlay();
+//        new Controller().continueParlay();
     }
 }

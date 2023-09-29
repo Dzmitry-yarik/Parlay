@@ -39,8 +39,8 @@ public class Horse extends Thread{
         return coef;
     }
 
-    public void setCoef(double coef) {
-        this.coef = coef;
+    public static void setCoef(double coef) {
+        Horse.coef = coef;
     }
 
     public static int getaStat() {

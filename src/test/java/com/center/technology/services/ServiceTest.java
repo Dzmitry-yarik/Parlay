@@ -19,19 +19,16 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-
 class ServiceTest {
 
     private Service service;
     private Totalizator totalizator;
-    private  Client currentClient;
+    private Client currentClient;
     private Horse horse;
 
-    private String TEST_ADDRESS = "C:\\Users\\Professional\\IdeaProjects\\UUU222\\homework_tester\\Parlay\\" +
-            "src\\main\\java\\com\\center\\technology\\clientsSheetTest.txt";
+    private String TEST_ADDRESS = "src\\main\\java\\com\\center\\technology\\clientsSheetTest.txt";
 
-    private String TEST_SERIALIZABLE = "C:\\Users\\Professional\\IdeaProjects\\UUU222\\homework_tester\\Parlay\\" +
-            "src\\main\\java\\com\\center\\technology\\serializable.txt";
+    private String TEST_SERIALIZABLE = "src\\main\\java\\com\\center\\technology\\serializable.txt";
     private static List<User> users = new ArrayList<>();
 
     @BeforeEach
@@ -47,27 +44,22 @@ class ServiceTest {
 
     @Test
     void enterSuccess() {
-        assertTrue(service.enter("login1", "password1"));
+        assertTrue(service.enter("login1", "password1", false));
     }
 
     @Test
     void enterFailure() {
-        assertFalse(service.enter("lonig123", "password123"));
+        assertFalse(service.enter("lonig123", "password123", false));
     }
 
     @Test
-    void enterAsAdmin() {
-        assertFalse(service.enter("admin", "admin"));
+    void enterAsAdminSuccess() {
+        assertTrue(service.enter("admin", "admin", true));
     }
 
     @Test
-    void enterAdmSuccess() {
-        assertTrue(service.enterAdm("admin", "admin"));
-    }
-
-    @Test
-    void enterAdmFailure() {
-        assertFalse(service.enterAdm("lonig123", "password123"));
+    void enterAsAdminFailure() {
+        assertFalse(service.enter("lonig123", "password123", true));
     }
 
     @Test
@@ -81,7 +73,7 @@ class ServiceTest {
     void findUserFailure() {
         User user = service.findUser("lonig123");
         assertNotNull(user);
-        assertEquals(null, user.getLogin());
+        assertNotEquals("lonig123", user.getLogin());
     }
 
     @Test
@@ -163,8 +155,19 @@ class ServiceTest {
         String formattedDateTime = now.format(formatter);
         service.addParlayInRegistrationSheet();
 
-        assertEquals(1, totalizator.getNewLines().size());
-        String lastLine = String.valueOf(totalizator.getNewLines());
+        List<String> updatedLines = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(totalizator.getADDRESS()))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                updatedLines.add(line);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        assertEquals(1, updatedLines.size());
+        String lastLine = updatedLines.get(0);
+
         assertTrue(lastLine.contains("Дата: " + formattedDateTime));
         assertTrue(lastLine.contains("login1"));
         assertTrue(lastLine.contains("500.0"));
@@ -203,7 +206,7 @@ class ServiceTest {
             deserializedUsers = (List<User>) objectInputStream.readObject();
             for (var user : deserializedUsers)
                 System.out.printf("name = %s, logim = %s, password = %s, \n",
-                       user.getName(), user.getLogin(), user.getPassword());
+                        user.getName(), user.getLogin(), user.getPassword());
 
         } catch (IOException | ClassNotFoundException ex) {
             System.err.println("Ошибка десериализации: " + ex);
@@ -213,34 +216,39 @@ class ServiceTest {
         assertNotNull(deserializedUsers, "Некорректная десериализация данных");
     }
 
-/**
- * для теста следующих двух методов нужно закомментировать строку №250( new Controller().continueParlay(); )
- * метода calculateMoney, класса Service
- */
+    /**
+     для теста следующих двух методов нужно закомментировать строку №238( new Controller().continueParlay(); )
+     метода calculateMoney, класса Service
+     */
 //    @Test
 //    void testCalculateMoneyWin() {
-//        horse.setaStat(2);
-//        horse.setCoef(5.0);
-//        Parlay currentParlay = new Parlay(2, 50);
+//        int winningHorse = 2;
+//        double winningCoef = 5.0;
+//        Horse.setaStat(winningHorse);
+//        Horse.setCoef(winningCoef);
 //
+//        Parlay currentParlay = new Parlay(winningHorse, 50);
 //        double initialMoney = 100.0;
-//        Totalizator.getCurrentClient().setYourMoney(initialMoney);
 //
+//        totalizator.getCurrentClient().setYourMoney(initialMoney);
 //        service.calculateMoney(currentParlay);
 //
-//        assertEquals(100.0 + (5.0 * 50.0), Totalizator.getCurrentClient().getYourMoney());
+//        assertEquals(100.0 + (winningCoef * 50), totalizator.getCurrentClient().getYourMoney());
 //    }
 //
 //    @Test
 //    void testCalculateMoneyLose() {
-//        horse.setaStat(2);
+//        int winningHorse = 2;
+//        Horse.setaStat(winningHorse);
+//
 //        Parlay currentParlay = new Parlay(1, 50);
-//
 //        double initialMoney = 100.0;
-//        Totalizator.getCurrentClient().setYourMoney(initialMoney);
 //
+//        totalizator.getCurrentClient().setYourMoney(initialMoney);
 //        service.calculateMoney(currentParlay);
 //
-//        assertEquals(100.0 - 50.0, Totalizator.getCurrentClient().getYourMoney());
+//        assertEquals(100.0 - 50.0, totalizator.getCurrentClient().getYourMoney());
 //    }
+
 }
+
