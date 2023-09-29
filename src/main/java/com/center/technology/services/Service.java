@@ -235,6 +235,6 @@ public class Service {
         }
 
         Horse.setaStat(0);
-//        new Controller().continueParlay();
+        new Controller().continueParlay();
     }
 }
