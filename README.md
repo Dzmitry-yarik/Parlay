@@ -14,3 +14,5 @@ All your bets will be calculated and recorded.
 At each stage of the input, you are expected to be checked for entering an incorrect value.
 ![image](https://github.com/Dzmitry-yarik/Parlay/assets/107866389/d352cb93-24e6-4761-99c4-6e09b08b6d14)
 
+Tests are also available in the app
+![image](https://github.com/Dzmitry-yarik/Parlay/assets/107866389/688df467-63b6-4af5-9b04-c25fe6d6e89e)
